@@ -1,1 +1,1 @@
-# SS2024_EmbededSystems_Lab_TeamE
+# SS2024_AES_Lab_TeamE
