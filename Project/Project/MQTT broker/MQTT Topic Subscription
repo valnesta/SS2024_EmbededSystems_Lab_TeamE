@@ -1,0 +1,47 @@
+import paho.mqtt.client as mqtt
+import RPi.GPIO as GPIO
+
+# MQTT settings
+broker = 'localhost' 
+port = 1883
+soil_moisture_topic = 'plant_monitoring/moisture'
+ph_sensor_topic = 'plant_monitoring/ph_sensor'
+
+# GPIO settings for servo
+servo_pin = 17  # Example GPIO pin
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(servo_pin, GPIO.OUT)
+pwm = GPIO.PWM(servo_pin, 50)  # 50Hz PWM frequency
+pwm.start(0)
+
+# Define the soil moisture threshold
+SOIL_MOISTURE_THRESHOLD = 3000  
+PH_THRESHOLD = 7.0  # Example pH threshold
+
+def on_connect(client, userdata, flags, rc):
+    print(f"Connected with result code {rc}")
+    client.subscribe([(soil_moisture_topic, 0), (ph_sensor_topic, 0)])
+
+def on_message(client, userdata, msg):
+    if msg.topic == soil_moisture_topic:
+        soil_moisture = int(msg.payload.decode())
+        print(f"Received soil moisture: {soil_moisture}")
+        
+        if soil_moisture < SOIL_MOISTURE_THRESHOLD:
+            # Move servo to pump water
+            pwm.ChangeDutyCycle(7.5)  
+        else:
+            # Move servo to stop pumping
+            pwm.ChangeDutyCycle(2.5) 
+
+    elif msg.topic == ph_sensor_topic:
+        ph_value = float(msg.payload.decode())
+        print(f"Received pH value: {ph_value}")
+        # Implement your logic for pH value if needed
+
+client = mqtt.Client()
+client.on_connect = on_connect
+client.on_message = on_message
+
+client.connect(broker, port, 60)
+client.loop_forever()
